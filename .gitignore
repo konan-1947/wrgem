@@ -15,15 +15,20 @@ logs/
 .env.local
 .env.*.local
 
-# Credentials & Sensitive Data
-**/credentials.json
-**/cookies.txt
-**/formkey.txt
-config/credentials.js
-**/poe-credentials.json
+# Browser Session Data (Chứa cookie đăng nhập Google)
+.chrome-user-data-aistudio/
+.chrome-user-data/
+.local-chromium/
+user_data/
 
-# Captured data (có thể chứa thông tin nhạy cảm)
+# Test files
+test-*.js
+*-screenshot.png
+screenshot-*.js
+debug-*.js
 
+# Captured data
+captured/
 
 # OS
 .DS_Store
@@ -46,12 +51,4 @@ build/
 tmp/
 temp/
 *.tmp
-
-# Debug
-.chrome/
-user_data/
 screenshots/
-
-# Puppeteer
-.local-chromium/
-.chrome-user-data/

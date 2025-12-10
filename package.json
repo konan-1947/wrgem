@@ -1,13 +1,24 @@
 {
-    "name": "rev-poe",
+    "name": "rev-aistudio",
     "version": "1.0.0",
-    "description": "Reverse engineering tool for Poe.com",
-    "main": "src/poe-capture.js",
+    "description": "Thư viện tương tác với Google AI Studio (Gemini) miễn phí",
+    "main": "index.js",
     "scripts": {
-        "capture": "node src/poe-capture.js"
+        "test": "node examples/aistudio-example.js"
     },
+    "keywords": [
+        "ai-studio",
+        "gemini",
+        "google",
+        "ai",
+        "chatbot",
+        "free"
+    ],
+    "author": "",
+    "license": "MIT",
     "dependencies": {
         "puppeteer": "^21.11.0",
-        "ws": "^8.18.3"
+        "puppeteer-extra": "^3.3.6",
+        "puppeteer-extra-plugin-stealth": "^2.11.2"
     }
 }
