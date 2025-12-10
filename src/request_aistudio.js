@@ -8,11 +8,8 @@ const _waitForResponse = require('./_waitForResponse');
 
 async function request_aistudio(message, options = {}) {
     try {
-        // Mở browser KHÔNG headless để debug
-        console.log('\n→ Mở browser (visible) cho request...');
+        // Mở browser headless
         await initFromFile.call(this, { headless: true });
-
-        console.log('→ Đang gửi message...');
 
         const textareaSelectors = [
             'textarea[placeholder*="Enter"]',
@@ -24,7 +21,6 @@ async function request_aistudio(message, options = {}) {
         for (const selector of textareaSelectors) {
             textarea = await this.page.$(selector);
             if (textarea) {
-                console.log(`  ✓ Tìm thấy input: ${selector}`);
                 break;
             }
         }
@@ -47,13 +43,9 @@ async function request_aistudio(message, options = {}) {
         const responsePromise = _waitForResponse.call(this, message, options);
 
         // Gửi message bằng Ctrl+Enter
-        console.log('→ Nhấn Ctrl+Enter để gửi...');
         await this.page.keyboard.down('Control');
         await this.page.keyboard.press('Enter');
         await this.page.keyboard.up('Control');
-
-        console.log('✓ Đã gửi message');
-        console.log('→ Đang đợi response...');
 
         // Đợi response với timeout
         const response = await Promise.race([
@@ -63,10 +55,7 @@ async function request_aistudio(message, options = {}) {
             )
         ]);
 
-        console.log('\n✓ Đã nhận response hoàn chỉnh');
-
         // Đóng browser sau khi nhận response
-        console.log('→ Đóng browser...');
         if (this.browser) {
             await this.browser.close();
             this.browser = null;

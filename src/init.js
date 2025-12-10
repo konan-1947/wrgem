@@ -18,7 +18,6 @@ async function init(options = {}) {
         const hasSession = fs.existsSync(userDataDir);
 
         if (hasSession) {
-            console.log('→ Tìm thấy session, init từ file...');
             // Có session → dùng headless
             await initFromFile.call(this, {
                 ...options,
@@ -26,7 +25,6 @@ async function init(options = {}) {
             });
 
             // Đóng browser sau khi init
-            console.log('→ Đóng browser sau init...');
             if (this.browser) {
                 await this.browser.close();
                 this.browser = null;
@@ -40,7 +38,6 @@ async function init(options = {}) {
                 browserClosed: true
             });
         } else {
-            console.log('→ Chưa có session, khởi tạo lần đầu...');
             // Chưa có session → browser hiện để login
             await init_aistudio.call(this, {
                 ...options,
@@ -48,7 +45,6 @@ async function init(options = {}) {
             });
 
             // Đóng browser sau khi login xong
-            console.log('→ Đóng browser sau login...');
             if (this.browser) {
                 await this.browser.close();
                 this.browser = null;
