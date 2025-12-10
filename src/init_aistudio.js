@@ -40,7 +40,7 @@ async function init_aistudio(options = {}) {
     await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
     console.log('→ Đang truy cập AI Studio...');
-    await this.page.goto('https://aistudio.google.com/prompts/new_chat', { waitUntil: 'networkidle2' });
+    await this.page.goto('https://aistudio.google.com/prompts/new_chat?model=gemini-2.5-pro', { waitUntil: 'networkidle2' });
 
     console.log('→ Toggle device mode để trigger UI...');
     const client = await this.page.target().createCDPSession();

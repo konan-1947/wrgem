@@ -3,6 +3,7 @@ import { Box, useApp, useStdout } from 'ink';
 import ChatView from './ChatView.js';
 import InputBox from './InputBox.js';
 import StatusBar from './StatusBar.js';
+import Logo from './Logo.js';
 import useAIStudio from '../hooks/useAIStudio.js';
 
 const { createElement: h } = React;
@@ -65,7 +66,14 @@ const App = () => {
     // Show init screen
     if (!isInitialized) {
         return h(Box, { flexDirection: 'column', height: terminalHeight },
-            h(Box, { flexGrow: 1 }),
+            h(Box, {
+                flexGrow: 1,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center'
+            },
+                h(Logo)
+            ),
             h(StatusBar, { status: 'init', message: initStatus })
         );
     }

@@ -93,13 +93,14 @@ const useAIStudio = () => {
         const userMessage = { role: 'user', content: text, time: null };
         setMessages(prev => [...prev, userMessage]);
 
-        // Prepare assistant message slot
-        let assistantMessageIndex = null;
-        let canShowResponse = false;
+        // Sử dụng ref thay vì biến local để tránh closure issue
+        const assistantMessageIndexRef = { current: null };
+        const canShowResponseRef = { current: false };
+        const pendingContentRef = { current: null };
 
         // Delay showing response (minimum 500ms thinking)
         setTimeout(() => {
-            canShowResponse = true;
+            canShowResponseRef.current = true;
         }, 500);
 
         try {
@@ -113,10 +114,11 @@ const useAIStudio = () => {
 
                     if (isFirstUpdate) {
                         isFirstUpdate = false;
+                        pendingContentRef.current = content;
 
                         // Wait until we can show response
                         const waitAndShow = () => {
-                            if (!canShowResponse) {
+                            if (!canShowResponseRef.current) {
                                 setTimeout(waitAndShow, 50);
                                 return;
                             }
@@ -125,10 +127,10 @@ const useAIStudio = () => {
                             setMessages(prev => {
                                 const newMessages = [...prev, {
                                     role: 'assistant',
-                                    content,
+                                    content: pendingContentRef.current,
                                     time: null
                                 }];
-                                assistantMessageIndex = newMessages.length - 1;
+                                assistantMessageIndexRef.current = newMessages.length - 1;
                                 return newMessages;
                             });
                         };
@@ -136,17 +138,21 @@ const useAIStudio = () => {
                         waitAndShow();
                     } else {
                         // Update assistant message content
-                        setMessages(prev => {
-                            if (assistantMessageIndex !== null) {
+                        if (assistantMessageIndexRef.current !== null) {
+                            setMessages(prev => {
                                 const newMessages = [...prev];
-                                newMessages[assistantMessageIndex] = {
-                                    ...newMessages[assistantMessageIndex],
-                                    content
-                                };
+                                if (assistantMessageIndexRef.current < newMessages.length) {
+                                    newMessages[assistantMessageIndexRef.current] = {
+                                        ...newMessages[assistantMessageIndexRef.current],
+                                        content
+                                    };
+                                }
                                 return newMessages;
-                            }
-                            return prev;
-                        });
+                            });
+                        } else {
+                            // Still waiting for first message to be added, save to pending
+                            pendingContentRef.current = content;
+                        }
                     }
                 }
             });
@@ -155,14 +161,18 @@ const useAIStudio = () => {
             if (result.success) {
                 const finalTime = Math.floor((Date.now() - startTime) / 1000);
 
+                // Wait một chút để đảm bảo assistantMessageIndex đã được set
+                await new Promise(r => setTimeout(r, 100));
+
                 setMessages(prev => {
                     const newMessages = [...prev];
-                    if (assistantMessageIndex !== null) {
-                        newMessages[assistantMessageIndex] = {
-                            ...newMessages[assistantMessageIndex],
+                    if (assistantMessageIndexRef.current !== null &&
+                        assistantMessageIndexRef.current < newMessages.length) {
+                        newMessages[assistantMessageIndexRef.current] = {
+                            ...newMessages[assistantMessageIndexRef.current],
                             time: finalTime
                         };
-                    } else {
+                    } else if (assistantMessageIndexRef.current === null) {
                         // No streaming, add message now
                         newMessages.push({
                             role: 'assistant',
