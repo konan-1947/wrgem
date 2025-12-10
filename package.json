@@ -1,0 +1,13 @@
+{
+    "name": "rev-poe",
+    "version": "1.0.0",
+    "description": "Reverse engineering tool for Poe.com",
+    "main": "src/poe-capture.js",
+    "scripts": {
+        "capture": "node src/poe-capture.js"
+    },
+    "dependencies": {
+        "puppeteer": "^21.11.0",
+        "ws": "^8.18.3"
+    }
+}
