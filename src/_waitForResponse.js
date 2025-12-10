@@ -1,6 +1,7 @@
 /**
  * _waitForResponse - Đợi và lấy response từ AI Studio
  * @private
+ * Dựa trên structure: .chat-turn-container > .turn-content > ms-cmark-node
  */
 
 async function _waitForResponse(message, options = {}) {
@@ -11,16 +12,48 @@ async function _waitForResponse(message, options = {}) {
 
         const checkInterval = setInterval(async () => {
             try {
-                const bodyText = await this.page.evaluate(() => document.body.innerText);
+                // Extract response text
+                const responseData = await this.page.evaluate(() => {
+                    // Tìm tất cả chat turn containers
+                    const containers = document.querySelectorAll('.chat-turn-container');
 
-                const parts = bodyText.split(message);
-                let currentText = '';
+                    if (containers.length > 0) {
+                        // Lấy container cuối cùng (response mới nhất)
+                        const lastContainer = containers[containers.length - 1];
 
-                if (parts.length > 1) {
-                    currentText = parts[parts.length - 1].trim();
-                    currentText = currentText.replace(/^Run\s*Ctrl\+Enter.*/, '').trim();
-                }
+                        // Lấy turn content
+                        const turnContent = lastContainer.querySelector('.turn-content');
 
+                        if (turnContent) {
+                            // Clone để không ảnh hưởng DOM
+                            const clone = turnContent.cloneNode(true);
+
+                            // Remove buttons
+                            const buttons = clone.querySelectorAll('button');
+                            buttons.forEach(el => el.remove());
+
+                            // Remove thinking sections
+                            const thinkingSections = clone.querySelectorAll('[class*="thinking"], [class*="thought"]');
+                            thinkingSections.forEach(el => el.remove());
+
+                            // Lấy text content
+                            const text = clone.textContent?.trim() || '';
+
+                            // Check footer có like button không (response complete)
+                            const footer = lastContainer.querySelector('.turn-footer');
+                            const hasLikeButton = footer ? !!footer.querySelector('button[iconname="thumb_up"]') : false;
+
+                            return { text, hasFooter: hasLikeButton };
+                        }
+                    }
+
+                    return { text: '', hasFooter: false };
+                });
+
+                const currentText = responseData.text;
+                const hasFooter = responseData.hasFooter;
+
+                // Check thay đổi
                 if (currentText && currentText !== previousText && currentText.length > 10) {
                     previousText = currentText;
                     noChangeCount = 0;
@@ -30,10 +63,11 @@ async function _waitForResponse(message, options = {}) {
                     } else {
                         process.stdout.write(`\r← ${currentText.substring(0, 100)}...`);
                     }
-                } else if (currentText) {
+                } else if (currentText && currentText === previousText) {
                     noChangeCount++;
 
-                    if (noChangeCount >= maxNoChange) {
+                    // Nếu có footer (like button) → response complete ngay
+                    if (hasFooter || noChangeCount >= maxNoChange) {
                         clearInterval(checkInterval);
 
                         if (options.onComplete && typeof options.onComplete === 'function') {

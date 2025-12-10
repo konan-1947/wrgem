@@ -25,10 +25,19 @@ async function init(options = {}) {
                 headless: options.headless !== undefined ? options.headless : true
             });
 
+            // Đóng browser sau khi init
+            console.log('→ Đóng browser sau init...');
+            if (this.browser) {
+                await this.browser.close();
+                this.browser = null;
+                this.page = null;
+            }
+
             return ResponseFormat.success(true, {
                 method: 'initFromFile',
                 headless: true,
-                userDataDir
+                userDataDir,
+                browserClosed: true
             });
         } else {
             console.log('→ Chưa có session, khởi tạo lần đầu...');
@@ -38,10 +47,19 @@ async function init(options = {}) {
                 headless: false
             });
 
+            // Đóng browser sau khi login xong
+            console.log('→ Đóng browser sau login...');
+            if (this.browser) {
+                await this.browser.close();
+                this.browser = null;
+                this.page = null;
+            }
+
             return ResponseFormat.success(true, {
                 method: 'init_aistudio',
                 headless: false,
-                userDataDir
+                userDataDir,
+                browserClosed: true
             });
         }
     } catch (error) {

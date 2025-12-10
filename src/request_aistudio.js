@@ -3,11 +3,16 @@
  */
 
 const ResponseFormat = require('./responseFormat');
+const initFromFile = require('./initFromFile');
 const _waitForResponse = require('./_waitForResponse');
 
 async function request_aistudio(message, options = {}) {
     try {
-        console.log('\n→ Đang gửi message...');
+        // Mở browser KHÔNG headless để debug
+        console.log('\n→ Mở browser (visible) cho request...');
+        await initFromFile.call(this, { headless: true });
+
+        console.log('→ Đang gửi message...');
 
         const textareaSelectors = [
             'textarea[placeholder*="Enter"]',
@@ -25,6 +30,12 @@ async function request_aistudio(message, options = {}) {
         }
 
         if (!textarea) {
+            // Đóng browser trước khi return error
+            if (this.browser) {
+                await this.browser.close();
+                this.browser = null;
+                this.page = null;
+            }
             return ResponseFormat.error('Không tìm thấy textarea để nhập message', 'TEXTAREA_NOT_FOUND');
         }
 
@@ -54,12 +65,27 @@ async function request_aistudio(message, options = {}) {
 
         console.log('\n✓ Đã nhận response hoàn chỉnh');
 
+        // Đóng browser sau khi nhận response
+        console.log('→ Đóng browser...');
+        if (this.browser) {
+            await this.browser.close();
+            this.browser = null;
+            this.page = null;
+        }
+
         return ResponseFormat.success(response, {
             inputMessage: message,
             responseLength: response.length,
             model: 'gemini'
         });
     } catch (error) {
+        // Đóng browser nếu có lỗi
+        if (this.browser) {
+            await this.browser.close();
+            this.browser = null;
+            this.page = null;
+        }
+
         return ResponseFormat.error(error.message, 'REQUEST_ERROR', {
             inputMessage: message
         });
