@@ -26,7 +26,7 @@
 ### Flow sử dụng
 
 ```javascript
-const client = new AIStudioClient();
+const client = new WrgemClient();
 
 // Bước 1: Setup credential (chỉ 1 lần)
 await client.init();
@@ -45,8 +45,8 @@ await client.close();
 Mỗi instance quản lý 1 browser riêng:
 
 ```javascript
-const client1 = new AIStudioClient();
-const client2 = new AIStudioClient();
+const client1 = new WrgemClient();
+const client2 = new WrgemClient();
 
 await client1.chat("câu hỏi 1"); // Browser 1
 await client2.chat("câu hỏi 2"); // Browser 2
