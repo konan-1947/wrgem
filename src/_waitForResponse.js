@@ -1,8 +1,10 @@
 /**
- * _waitForResponse - Đợi và lấy response từ AI Studio
+ * _waitForResponse - Đợi và lấy response từ AI Studio (markdown format)
  * @private
  * Dựa trên structure: .chat-turn-container > .turn-content > ms-cmark-node
  */
+
+const htmlToMarkdown = require('./htmlToMarkdown');
 
 async function _waitForResponse(message, options = {}) {
     return new Promise(async (resolve) => {
@@ -12,7 +14,7 @@ async function _waitForResponse(message, options = {}) {
 
         const checkInterval = setInterval(async () => {
             try {
-                // Extract response text
+                // Extract response HTML từ ms-cmark-node
                 const responseData = await this.page.evaluate(() => {
                     // Tìm tất cả chat turn containers
                     const containers = document.querySelectorAll('.chat-turn-container');
@@ -25,56 +27,58 @@ async function _waitForResponse(message, options = {}) {
                         const turnContent = lastContainer.querySelector('.turn-content');
 
                         if (turnContent) {
-                            // Clone để không ảnh hưởng DOM
-                            const clone = turnContent.cloneNode(true);
+                            // Tìm ms-cmark-node (component chứa markdown đã render)
+                            const cmarkNode = turnContent.querySelector('ms-cmark-node');
 
-                            // Remove buttons
-                            const buttons = clone.querySelectorAll('button');
-                            buttons.forEach(el => el.remove());
+                            if (cmarkNode) {
+                                // Lấy HTML để convert sang markdown
+                                const html = cmarkNode.innerHTML;
+                                const textPreview = cmarkNode.textContent?.trim() || '';
 
-                            // Remove thinking sections
-                            const thinkingSections = clone.querySelectorAll('[class*="thinking"], [class*="thought"]');
-                            thinkingSections.forEach(el => el.remove());
+                                // Check footer có like button không (response complete)
+                                const footer = lastContainer.querySelector('.turn-footer');
+                                const hasLikeButton = footer ? !!footer.querySelector('button[iconname="thumb_up"]') : false;
 
-                            // Lấy text content
-                            const text = clone.textContent?.trim() || '';
-
-                            // Check footer có like button không (response complete)
-                            const footer = lastContainer.querySelector('.turn-footer');
-                            const hasLikeButton = footer ? !!footer.querySelector('button[iconname="thumb_up"]') : false;
-
-                            return { text, hasFooter: hasLikeButton };
+                                return { html, textPreview, hasFooter: hasLikeButton };
+                            }
                         }
                     }
 
-                    return { text: '', hasFooter: false };
+                    return { html: '', textPreview: '', hasFooter: false };
                 });
 
-                const currentText = responseData.text;
+                const currentHtml = responseData.html;
+                const textPreview = responseData.textPreview;
                 const hasFooter = responseData.hasFooter;
 
                 // Check thay đổi
-                if (currentText && currentText !== previousText && currentText.length > 10) {
-                    previousText = currentText;
+                if (currentHtml && currentHtml !== previousText && textPreview.length > 10) {
+                    previousText = currentHtml;
                     noChangeCount = 0;
 
+                    // Convert HTML sang markdown cho progress update
+                    const markdown = htmlToMarkdown(currentHtml);
+
                     if (options.onUpdate && typeof options.onUpdate === 'function') {
-                        options.onUpdate(currentText);
+                        options.onUpdate(markdown);
                     } else {
-                        process.stdout.write(`\r← ${currentText.substring(0, 100)}...`);
+                        process.stdout.write(`\r← ${textPreview.substring(0, 100)}...`);
                     }
-                } else if (currentText && currentText === previousText) {
+                } else if (currentHtml && currentHtml === previousText) {
                     noChangeCount++;
 
                     // Nếu có footer (like button) → response complete ngay
                     if (hasFooter || noChangeCount >= maxNoChange) {
                         clearInterval(checkInterval);
 
+                        // Convert HTML sang markdown cho kết quả cuối
+                        const finalMarkdown = htmlToMarkdown(currentHtml);
+
                         if (options.onComplete && typeof options.onComplete === 'function') {
-                            options.onComplete(currentText);
+                            options.onComplete(finalMarkdown);
                         }
 
-                        resolve(currentText);
+                        resolve(finalMarkdown);
                     }
                 }
             } catch (error) {
