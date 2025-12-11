@@ -42,14 +42,21 @@ const Logo = () => {
         logoText = 'WRGEM';
     }
 
-    const gradient = ['#00d9ff', '#00b8d4', '#0097a7', '#00838f'];
+
     const lines = logoText.split('\n').filter(line => line.trim());
+
+    // Tạo gradient động
+    const getColor = (i, total) => {
+        const colors = ['#00d9ff', '#00c4e8', '#00afd1', '#009aba', '#00838f'];
+        const index = Math.floor((i / (total - 1)) * (colors.length - 1));
+        return colors[Math.min(index, colors.length - 1)];
+    };
 
     return h(Box, { flexDirection: 'column' },
         lines.map((line, i) =>
             h(Text, {
                 key: i,
-                color: gradient[i % gradient.length],
+                color: getColor(i, lines.length),
                 bold: true
             }, line)
         )
@@ -58,16 +65,8 @@ const Logo = () => {
 
 // Tips component
 const Tips = () => {
-    const tips = [
-        'Based on puppeteer and aistudio',
-        'Gõ "exit" để thoát • "clear" để xóa lịch sử.'
-    ];
-
-    return h(Box, { flexDirection: 'column', marginTop: 1 },
-        h(Text, { dimColor: true }, 'Mẹo để bắt đầu:'),
-        tips.map((tip, i) =>
-            h(Text, { key: i, dimColor: true }, `${i + 1}. ${tip}`)
-        )
+    return h(Box, { marginTop: 1 },
+        h(Text, { dimColor: true }, 'Made by Konan')
     );
 };
 
@@ -79,6 +78,26 @@ const LoadingIndicator = ({ text }) => {
     );
 };
 
+// Process text - extract URLs and replace with numbers
+const processText = (text) => {
+    if (!text) return { text: '', urls: [] };
+
+    const urls = [];
+    let urlIndex = 0;
+
+    // Extract and replace URLs with [1], [2], etc
+    let processed = text.replace(/(https?:\/\/[^\s\)]+)/g, (url) => {
+        urlIndex++;
+        urls.push(url);
+        return `[${urlIndex}]`;
+    });
+
+    // Remove grounding citations that are already numbered like [[1]], [[2]]
+    processed = processed.replace(/\[\[\d+\]\]/g, '');
+
+    return { text: processed, urls };
+};
+
 const ChatApp = () => {
     const { exit } = useApp();
     const [client] = useState(() => new AIStudioClient());
@@ -87,6 +106,8 @@ const ChatApp = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [status, setStatus] = useState('Đang khởi tạo');
+    const [thinkingTime, setThinkingTime] = useState(0);
+    const thinkingIntervalRef = useRef(null);
 
     // Suppress console logs
     const suppressLogs = () => {
@@ -148,7 +169,12 @@ const ChatApp = () => {
 
         setInput('');
         setIsLoading(true);
-        setStatus('Đang xử lý');
+        setThinkingTime(0);
+
+        // Start thinking timer
+        thinkingIntervalRef.current = setInterval(() => {
+            setThinkingTime(prev => prev + 1);
+        }, 1000);
 
         const restore = suppressLogs();
 
@@ -177,6 +203,10 @@ const ChatApp = () => {
             setMessages(prev => [...prev, { role: 'assistant', content: `⚠ ${err.message}` }]);
             setStatus('Lỗi');
         } finally {
+            if (thinkingIntervalRef.current) {
+                clearInterval(thinkingIntervalRef.current);
+                thinkingIntervalRef.current = null;
+            }
             setIsLoading(false);
             restore();
         }
@@ -208,16 +238,30 @@ const ChatApp = () => {
         ),
 
         // Messages area
-        isInitialized && h(Box, { flexDirection: 'column', marginTop: 2, paddingX: 1 },
-            messages.slice(-6).map((msg, i) =>
-                h(Box, { key: i, flexDirection: 'column', marginBottom: 2 },
+        isInitialized && h(Box, { flexDirection: 'column', marginTop: 2, paddingX: 1, width: '100%' },
+            messages.slice(-6).map((msg, i) => {
+                const { text: processedText, urls } = processText(msg.content);
+
+                return h(Box, { key: i, flexDirection: 'column', marginBottom: 2, width: '100%' },
                     h(Text, {
                         bold: true,
                         color: msg.role === 'user' ? '#00d9ff' : '#ff00ff'
-                    }, msg.role === 'user' ? '> Bạn' : '< AI'),
-                    h(Text, { wrap: 'wrap' }, msg.content)
-                )
-            )
+                    }, msg.role === 'user' ? 'Bạn' : 'AI'),
+                    h(Box, { width: '100%', flexDirection: 'column' },
+                        h(Text, { wrap: 'wrap' }, processedText),
+                        // Show URLs list if any
+                        urls.length > 0 && h(Box, { flexDirection: 'column', marginTop: 1 },
+                            urls.map((url, idx) =>
+                                h(Text, {
+                                    key: idx,
+                                    dimColor: true,
+                                    color: 'cyan'
+                                }, `[${idx + 1}] ${url}`)
+                            )
+                        )
+                    )
+                );
+            })
         ),
 
         // Input box with status
@@ -230,11 +274,12 @@ const ChatApp = () => {
             justifyContent: 'space-between'
         },
             h(Box, { flexGrow: 1 },
-                h(Text, null,
-                    isLoading
-                        ? '⏳ Đang xử lý...'
-                        : `> ${input}${isInitialized ? '█' : ''}`
-                )
+                isLoading
+                    ? h(Box, {},
+                        h(Text, { color: 'yellow' }, `Thinking in ${thinkingTime}s`),
+                        h(AnimatedDots, { color: 'yellow' })
+                    )
+                    : h(Text, null, `> ${input}${isInitialized ? '█' : ''}`)
             ),
             !isLoading && h(Text, {
                 color: 'green',

@@ -18,8 +18,14 @@ const _waitForResponse = require('./_waitForResponse');
 
 async function chat(message, options = {}) {
     try {
-        // Chỉ mở browser nếu chưa có browser đang mở
-        if (!this.browser || !this.page) {
+        // Check browser có đang hoạt động không
+        const needReconnect = !this.browser ||
+            !this.page ||
+            !this.browser.isConnected() ||
+            this.page.isClosed();
+
+        if (needReconnect) {
+            console.log('=> Browser chưa mở hoặc đã bị đóng, đang kết nối lại...');
             await initFromFile.call(this, { headless: 'new' });
         }
 
@@ -30,10 +36,24 @@ async function chat(message, options = {}) {
         ];
 
         let textarea = null;
-        for (const selector of textareaSelectors) {
-            textarea = await this.page.$(selector);
-            if (textarea) {
-                break;
+        try {
+            for (const selector of textareaSelectors) {
+                textarea = await this.page.$(selector);
+                if (textarea) {
+                    break;
+                }
+            }
+        } catch (error) {
+            // Nếu page bị lỗi, reconnect và thử lại
+            console.log('=> Lỗi khi truy cập page, đang reconnect...');
+            await initFromFile.call(this, { headless: 'new' });
+
+            // Thử lại
+            for (const selector of textareaSelectors) {
+                textarea = await this.page.$(selector);
+                if (textarea) {
+                    break;
+                }
             }
         }
 
