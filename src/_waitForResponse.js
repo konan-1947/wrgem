@@ -51,8 +51,8 @@ async function _waitForResponse(message, options = {}) {
                 const textPreview = responseData.textPreview;
                 const hasFooter = responseData.hasFooter;
 
-                // Check thay đổi
-                if (currentHtml && currentHtml !== previousText && textPreview.length > 10) {
+                // Check thay đổi (bỏ điều kiện length > 10 để hỗ trợ response ngắn)
+                if (currentHtml && currentHtml !== previousText && textPreview.length > 0) {
                     // Lần đầu có content -> chuyển sang streaming
                     if (previousText === '' && options.onStatus) {
                         options.onStatus('streaming');
