@@ -187,9 +187,19 @@ class AIStudioClientV2 {
             throw new Error('Không tìm thấy textarea để nhập message');
         }
 
-        // Clear và nhập message
-        await textarea.click({ clickCount: 3 });
-        await textarea.type(message, { delay: 30 });
+        // Clear và nhập message bằng cách set value trực tiếp
+        await textarea.click();
+        await textarea.evaluate(el => el.value = ''); // Clear
+
+        // Set value và trigger events
+        await textarea.evaluate((el, text) => {
+            el.value = text;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }, message);
+
+        // Đợi một chút để UI update
+        await this.page.waitForTimeout(300);
 
         // Đợi response container xuất hiện
         const responsePromise = this._waitForResponse(message, options);

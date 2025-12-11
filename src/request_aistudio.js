@@ -35,9 +35,19 @@ async function request_aistudio(message, options = {}) {
             return ResponseFormat.error('Không tìm thấy textarea để nhập message', 'TEXTAREA_NOT_FOUND');
         }
 
-        // Clear và nhập message
-        await textarea.click({ clickCount: 3 });
-        await textarea.type(message, { delay: 10 });
+        // Clear và nhập message bằng cách set value trực tiếp
+        await textarea.click();
+        await textarea.evaluate(el => el.value = ''); // Clear
+
+        // Set value và trigger events
+        await textarea.evaluate((el, text) => {
+            el.value = text;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        }, message);
+
+        // Đợi một chút để UI update
+        await this.page.waitForTimeout(300);
 
         // Đợi response container xuất hiện
         const responsePromise = _waitForResponse.call(this, message, options);
