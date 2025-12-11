@@ -1,0 +1,2 @@
+- lấy mã markdown của phản hồi thay vì lấy text như bh
+- tổ chức session theo phiên mở browser 

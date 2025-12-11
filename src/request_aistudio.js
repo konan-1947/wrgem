@@ -9,7 +9,7 @@ const _waitForResponse = require('./_waitForResponse');
 async function request_aistudio(message, options = {}) {
     try {
         // Mở browser headless
-        await initFromFile.call(this, { headless: true });
+        await initFromFile.call(this, { headless: false });
 
         const textareaSelectors = [
             'textarea[placeholder*="Enter"]',
