@@ -12,6 +12,7 @@ export const useAIClient = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [status, setStatus] = useState('Đang khởi tạo');
+    const [currentStatus, setCurrentStatus] = useState('');
     const [thinkingTime, setThinkingTime] = useState(0);
     const thinkingIntervalRef = useRef(null);
 
@@ -52,24 +53,44 @@ export const useAIClient = () => {
 
         try {
             const result = await client.request_aistudio(text, {
+                onStatus: (statusKey) => {
+                    const statusMap = {
+                        'reconnecting': 'Đang kết nối',
+                        'finding_input': 'Tìm ô nhập',
+                        'filling_message': 'Điền tin nhắn',
+                        'sending_request': 'Gửi yêu cầu',
+                        'waiting_response': 'Đợi phản hồi',
+                        'streaming': 'Đang nhận'
+                    };
+                    setCurrentStatus(statusMap[statusKey] || statusKey);
+                },
                 onUpdate: (content) => {
                     setMessages(prev => {
                         const lastMsg = prev[prev.length - 1];
                         if (lastMsg && lastMsg.role === 'assistant') {
-                            return [...prev.slice(0, -1), { role: 'assistant', content }];
+                            return [...prev.slice(0, -1), { role: 'assistant', content, responseTime: thinkingTime }];
                         } else {
-                            return [...prev, { role: 'assistant', content }];
+                            return [...prev, { role: 'assistant', content, responseTime: thinkingTime }];
                         }
                     });
                 }
             });
 
             if (!result.success) {
-                setMessages(prev => [...prev, { role: 'assistant', content: `⚠ ${result.error.message}` }]);
+                setMessages(prev => [...prev, { role: 'assistant', content: `⚠ ${result.error.message}`, responseTime: thinkingTime }]);
+            } else {
+                // Update response time cho message cuối
+                setMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg && lastMsg.role === 'assistant') {
+                        return [...prev.slice(0, -1), { ...lastMsg, responseTime: thinkingTime }];
+                    }
+                    return prev;
+                });
             }
             setStatus('Sẵn sàng');
         } catch (err) {
-            setMessages(prev => [...prev, { role: 'assistant', content: `⚠ ${err.message}` }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: `⚠ ${err.message}`, responseTime: thinkingTime }]);
             setStatus('Lỗi');
         } finally {
             if (thinkingIntervalRef.current) {
@@ -90,6 +111,7 @@ export const useAIClient = () => {
         isLoading,
         isInitialized,
         status,
+        currentStatus,
         thinkingTime,
         handleSubmit
     };

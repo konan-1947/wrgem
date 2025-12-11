@@ -4,7 +4,7 @@ import AnimatedDots from './AnimatedDots.js';
 
 const { createElement: h } = React;
 
-const InputBox = ({ input, isLoading, thinkingTime, status, isInitialized }) => {
+const InputBox = ({ input, isLoading, thinkingTime, status, currentStatus, isInitialized }) => {
     return h(Box, {
         borderStyle: 'round',
         borderColor: isLoading ? 'yellow' : '#00d9ff',
@@ -16,7 +16,11 @@ const InputBox = ({ input, isLoading, thinkingTime, status, isInitialized }) => 
         h(Box, { flexGrow: 1 },
             isLoading
                 ? h(Box, {},
-                    h(Text, { color: 'yellow' }, `Thinking in ${thinkingTime}s`),
+                    h(Text, { color: 'yellow' },
+                        currentStatus
+                            ? `(${thinkingTime}s) ${currentStatus}`
+                            : `(${thinkingTime}s) Thinking`
+                    ),
                     h(AnimatedDots, { color: 'yellow' })
                 )
                 : h(Text, null, `> ${input}${isInitialized ? '█' : ''}`)

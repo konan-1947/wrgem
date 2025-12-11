@@ -53,6 +53,11 @@ async function _waitForResponse(message, options = {}) {
 
                 // Check thay đổi
                 if (currentHtml && currentHtml !== previousText && textPreview.length > 10) {
+                    // Lần đầu có content -> chuyển sang streaming
+                    if (previousText === '' && options.onStatus) {
+                        options.onStatus('streaming');
+                    }
+
                     previousText = currentHtml;
                     noChangeCount = 0;
 

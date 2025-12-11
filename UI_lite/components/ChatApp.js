@@ -20,6 +20,7 @@ const ChatApp = () => {
         isLoading,
         isInitialized,
         status,
+        currentStatus,
         thinkingTime,
         handleSubmit
     } = useAIClient();
@@ -58,6 +59,7 @@ const ChatApp = () => {
             isLoading,
             thinkingTime,
             status,
+            currentStatus,
             isInitialized
         }),
 

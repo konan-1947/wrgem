@@ -25,6 +25,7 @@ async function chat(message, options = {}) {
             this.page.isClosed();
 
         if (needReconnect) {
+            if (options.onStatus) options.onStatus('reconnecting');
             console.log('=> Browser chưa mở hoặc đã bị đóng, đang kết nối lại...');
             await initFromFile.call(this, { headless: 'new' });
         }
@@ -37,6 +38,7 @@ async function chat(message, options = {}) {
 
         let textarea = null;
         try {
+            if (options.onStatus) options.onStatus('finding_input');
             for (const selector of textareaSelectors) {
                 textarea = await this.page.$(selector);
                 if (textarea) {
@@ -62,6 +64,7 @@ async function chat(message, options = {}) {
         }
 
         // Clear và nhập message bằng cách set value trực tiếp
+        if (options.onStatus) options.onStatus('filling_message');
         await textarea.click();
         await textarea.evaluate(el => el.value = ''); // Clear
 
@@ -75,13 +78,15 @@ async function chat(message, options = {}) {
         // Đợi một chút để UI update
         await this.page.waitForTimeout(300);
 
-        // Đợi response container xuất hiện
-        const responsePromise = _waitForResponse.call(this, message, options);
-
         // Gửi message bằng Ctrl+Enter
+        if (options.onStatus) options.onStatus('sending_request');
         await this.page.keyboard.down('Control');
         await this.page.keyboard.press('Enter');
         await this.page.keyboard.up('Control');
+
+        // Đợi response container xuất hiện
+        if (options.onStatus) options.onStatus('waiting_response');
+        const responsePromise = _waitForResponse.call(this, message, options);
 
         // Đợi response với timeout
         const response = await Promise.race([

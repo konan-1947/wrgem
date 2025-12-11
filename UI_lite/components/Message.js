@@ -11,8 +11,11 @@ const Message = ({ message, index }) => {
         h(Text, {
             bold: true,
             color: message.role === 'user' ? '#00d9ff' : '#ff00ff'
-        }, message.role === 'user' ? 'Bạn' : 'AI'),
-        h(Box, { width: '100%', flexDirection: 'column' },
+        }, message.role === 'user'
+            ? '> Human'
+            : `> AI${message.responseTime ? ` (${message.responseTime}s)` : ''}`
+        ),
+        h(Box, { width: '100%', flexDirection: 'column', paddingLeft: 2 },
             h(Text, { wrap: 'wrap' }, processedText),
             urls.length > 0 && h(Box, { flexDirection: 'column', marginTop: 1 },
                 urls.map((url, idx) =>
