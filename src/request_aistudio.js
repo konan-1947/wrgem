@@ -37,7 +37,7 @@ async function request_aistudio(message, options = {}) {
 
         // Clear và nhập message
         await textarea.click({ clickCount: 3 });
-        await textarea.type(message, { delay: 5 });
+        await textarea.type(message, { delay: 10 });
 
         // Đợi response container xuất hiện
         const responsePromise = _waitForResponse.call(this, message, options);

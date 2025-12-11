@@ -189,7 +189,7 @@ class AIStudioClientV2 {
 
         // Clear và nhập message
         await textarea.click({ clickCount: 3 });
-        await textarea.type(message, { delay: 10 });
+        await textarea.type(message, { delay: 30 });
 
         // Đợi response container xuất hiện
         const responsePromise = this._waitForResponse(message, options);
