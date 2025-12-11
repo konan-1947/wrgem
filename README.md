@@ -5,6 +5,5 @@ Thư viện Node.js để tương tác với Google AI Studio (Gemini) miễn ph
 ## Demo
 
 
-
-https://github.com/user-attachments/assets/3af13784-d9a3-4420-8b0e-65f975d9bb01
+https://github.com/user-attachments/assets/32c964fe-3086-405e-a959-3ac41a021d67
 
