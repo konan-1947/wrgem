@@ -2,6 +2,6 @@
  * Rev AI Studio - Entry point
  */
 
-const AIStudioClient = require('./src/main');
+const WrgemClient = require('./src/main');
 
-module.exports = AIStudioClient;
+module.exports = WrgemClient;
