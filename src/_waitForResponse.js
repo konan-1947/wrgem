@@ -67,7 +67,7 @@ async function _waitForResponse(message, options = {}) {
                 } else if (currentHtml && currentHtml === previousText) {
                     noChangeCount++;
 
-                    // Nếu có footer (like button) → response complete ngay
+                    // Nếu có footer (like button) => response complete ngay
                     if (hasFooter || noChangeCount >= maxNoChange) {
                         clearInterval(checkInterval);
 

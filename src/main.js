@@ -3,7 +3,7 @@
  */
 
 const init = require('./init');
-const request_aistudio = require('./request_aistudio');
+const chat = require('./chat');
 const close = require('./close');
 
 class AIStudioClient {
@@ -14,18 +14,18 @@ class AIStudioClient {
 
     /**
      * Khởi tạo client (auto-detect session)
-     * - Nếu có session → headless mode
-     * - Nếu chưa có → browser hiện để login
+     * - Nếu có session => headless mode
+     * - Nếu chưa có => browser hiện để login
      */
     async init(options = {}) {
         return await init.call(this, options);
     }
 
     /**
-     * Gửi message và nhận response
+     * Gửi message và nhận response (chat liên tục)
      */
-    async request_aistudio(message, options = {}) {
-        return await request_aistudio.call(this, message, options);
+    async chat(message, options = {}) {
+        return await chat.call(this, message, options);
     }
 
     /**

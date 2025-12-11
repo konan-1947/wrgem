@@ -12,13 +12,13 @@ const os = require('os');
 puppeteer.use(StealthPlugin());
 
 async function testAIStudio() {
-    console.log('→ Đang mở browser với stealth mode...');
+    console.log('=> Đang mở browser với stealth mode...');
 
     // Lấy thư mục session từ AppData
     const appDataPath = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
     const userDataDir = path.join(appDataPath, 'rev-aistudio', 'chrome-session');
 
-    console.log('→ User data directory:', userDataDir);
+    console.log('=> User data directory:', userDataDir);
 
     if (!fs.existsSync(userDataDir)) {
         fs.mkdirSync(userDataDir, { recursive: true });
@@ -43,12 +43,12 @@ async function testAIStudio() {
     const page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    console.log('→ Đang truy cập AI Studio...');
+    console.log('=> Đang truy cập AI Studio...');
     await page.goto('https://aistudio.google.com/prompts/new_chat?model=gemini-2.5-pro', {
         waitUntil: 'networkidle2'
     });
 
-    console.log('→ Toggle device mode để trigger UI...');
+    console.log('=> Toggle device mode để trigger UI...');
     const client = await page.target().createCDPSession();
     await client.send('Emulation.setDeviceMetricsOverride', {
         width: 375,
@@ -59,7 +59,7 @@ async function testAIStudio() {
     await page.waitForTimeout(500);
     await client.send('Emulation.clearDeviceMetricsOverride');
 
-    console.log('→ Đợi UI load...');
+    console.log('=> Đợi UI load...');
     try {
         await page.waitForSelector('textarea', { timeout: 10000 });
     } catch (e) {

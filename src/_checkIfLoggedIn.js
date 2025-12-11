@@ -5,14 +5,14 @@
 
 async function _checkIfLoggedIn() {
     try {
-        console.log('  → Check login...');
+        console.log('  => Check login...');
         await this.page.waitForTimeout(3000);
 
         const currentUrl = this.page.url();
-        console.log('  → URL:', currentUrl);
+        console.log('  => URL:', currentUrl);
 
         if (currentUrl.includes('accounts.google.com')) {
-            console.log('  → Đang ở trang login');
+            console.log('  => Đang ở trang login');
             return false;
         }
 

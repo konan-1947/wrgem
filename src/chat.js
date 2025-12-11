@@ -1,15 +1,27 @@
 /**
- * request_aistudio - Gửi message và nhận response
+ * chat - Gửi message và nhận response (chat liên tục)
+ * 
+ * MỤC ĐÍCH:
+ * - Gửi message và nhận response từ AI Studio
+ * - Browser mở LIÊN TỤC, không đóng sau mỗi lần chat
+ * - Lần đầu: mở browser từ credential đã lưu
+ * - Các lần sau: dùng lại browser đang mở
+ * 
+ * LƯU Ý:
+ * - Browser chỉ đóng khi user gọi close() chủ động
+ * - Context được AI Studio tự quản lý trong UI
  */
 
 const ResponseFormat = require('./responseFormat');
 const initFromFile = require('./initFromFile');
 const _waitForResponse = require('./_waitForResponse');
 
-async function request_aistudio(message, options = {}) {
+async function chat(message, options = {}) {
     try {
-        // Mở browser headless
-        await initFromFile.call(this, { headless: false });
+        // Chỉ mở browser nếu chưa có browser đang mở
+        if (!this.browser || !this.page) {
+            await initFromFile.call(this, { headless: false });
+        }
 
         const textareaSelectors = [
             'textarea[placeholder*="Enter"]',
@@ -26,12 +38,6 @@ async function request_aistudio(message, options = {}) {
         }
 
         if (!textarea) {
-            // Đóng browser trước khi return error
-            if (this.browser) {
-                await this.browser.close();
-                this.browser = null;
-                this.page = null;
-            }
             return ResponseFormat.error('Không tìm thấy textarea để nhập message', 'TEXTAREA_NOT_FOUND');
         }
 
@@ -65,12 +71,7 @@ async function request_aistudio(message, options = {}) {
             )
         ]);
 
-        // Đóng browser sau khi nhận response
-        if (this.browser) {
-            await this.browser.close();
-            this.browser = null;
-            this.page = null;
-        }
+        // GIỮ browser mở để chat tiếp
 
         return ResponseFormat.success(response, {
             inputMessage: message,
@@ -78,12 +79,7 @@ async function request_aistudio(message, options = {}) {
             model: 'gemini'
         });
     } catch (error) {
-        // Đóng browser nếu có lỗi
-        if (this.browser) {
-            await this.browser.close();
-            this.browser = null;
-            this.page = null;
-        }
+        // GIỮ browser mở ngay cả khi có lỗi (user tự quyết định đóng)
 
         return ResponseFormat.error(error.message, 'REQUEST_ERROR', {
             inputMessage: message
@@ -91,4 +87,4 @@ async function request_aistudio(message, options = {}) {
     }
 }
 
-module.exports = request_aistudio;
+module.exports = chat;

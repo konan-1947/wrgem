@@ -30,7 +30,7 @@ class AIStudioClientV2 {
         const headless = options.headless !== undefined ? options.headless : false;
         const userDataDir = options.userDataDir || getDefaultUserDataDir();
 
-        console.log('→ Đang mở browser với stealth mode...');
+        console.log('=> Đang mở browser với stealth mode...');
 
         if (!fs.existsSync(userDataDir)) {
             fs.mkdirSync(userDataDir, { recursive: true });
@@ -54,10 +54,10 @@ class AIStudioClientV2 {
         this.page = await this.browser.newPage();
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-        console.log('→ Đang truy cập AI Studio...');
+        console.log('=> Đang truy cập AI Studio...');
         await this.page.goto('https://aistudio.google.com/prompts/new_chat?model=gemini-2.5-pro', { waitUntil: 'networkidle2' });
 
-        console.log('→ Toggle device mode để trigger UI...');
+        console.log('=> Toggle device mode để trigger UI...');
         // Trick: Toggle device emulation để force AI Studio re-render UI
         const client = await this.page.target().createCDPSession();
         await client.send('Emulation.setDeviceMetricsOverride', {
@@ -70,7 +70,7 @@ class AIStudioClientV2 {
         await client.send('Emulation.clearDeviceMetricsOverride');
 
         // Đợi textarea load xong
-        console.log('→ Đợi UI load...');
+        console.log('=> Đợi UI load...');
         try {
             await this.page.waitForSelector('textarea', { timeout: 10000 });
         } catch (e) {
@@ -109,7 +109,7 @@ class AIStudioClientV2 {
             throw new Error('Chưa có user data. Vui lòng chạy init_aistudio() trước.');
         }
 
-        console.log('→ Đang mở browser (headless)...');
+        console.log('=> Đang mở browser (headless)...');
 
         this.browser = await puppeteer.launch({
             headless: headless,
@@ -129,7 +129,7 @@ class AIStudioClientV2 {
         this.page = await this.browser.newPage();
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-        console.log('→ Đang truy cập AI Studio...');
+        console.log('=> Đang truy cập AI Studio...');
         await this.page.goto('https://aistudio.google.com/prompts/new_chat?model=gemini-2.5-pro', { waitUntil: 'networkidle2' });
 
         // Toggle device mode
@@ -162,10 +162,10 @@ class AIStudioClientV2 {
     }
 
     /**
-     * Gửi message và nhận response
+     * Gửi message và nhận response (chat liên tục)
      */
-    async request_aistudio(message, options = {}) {
-        console.log('\n→ Đang gửi message...');
+    async chat(message, options = {}) {
+        console.log('\n=> Đang gửi message...');
 
         // Tìm textarea - dùng selector đơn giản
         const textareaSelectors = [
@@ -205,13 +205,13 @@ class AIStudioClientV2 {
         const responsePromise = this._waitForResponse(message, options);
 
         // Gửi message bằng Ctrl+Enter
-        console.log('→ Nhấn Ctrl+Enter để gửi...');
+        console.log('=> Nhấn Ctrl+Enter để gửi...');
         await this.page.keyboard.down('Control');
         await this.page.keyboard.press('Enter');
         await this.page.keyboard.up('Control');
 
         console.log('✓ Đã gửi message');
-        console.log('→ Đang đợi response...');
+        console.log('=> Đang đợi response...');
 
         // Đợi response với timeout
         const response = await Promise.race([
@@ -287,14 +287,14 @@ class AIStudioClientV2 {
      */
     async _checkIfLoggedIn() {
         try {
-            console.log('  → Check login...');
+            console.log('  => Check login...');
             await this.page.waitForTimeout(3000);
 
             const currentUrl = this.page.url();
-            console.log('  → URL:', currentUrl);
+            console.log('  => URL:', currentUrl);
 
             if (currentUrl.includes('accounts.google.com')) {
-                console.log('  → Đang ở trang login');
+                console.log('  => Đang ở trang login');
                 return false;
             }
 

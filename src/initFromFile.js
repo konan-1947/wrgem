@@ -18,7 +18,7 @@ async function initFromFile(options = {}) {
         throw new Error('Chưa có user data. Vui lòng chạy init_aistudio() trước.');
     }
 
-    console.log('→ Đang mở browser (headless)...');
+    console.log('=> Đang mở browser (headless)...');
 
     this.browser = await puppeteer.launch({
         headless: headless,
@@ -38,7 +38,7 @@ async function initFromFile(options = {}) {
     this.page = await this.browser.newPage();
     await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-    console.log('→ Đang truy cập AI Studio...');
+    console.log('=> Đang truy cập AI Studio...');
     await this.page.goto('https://aistudio.google.com/prompts/new_chat?model=gemini-2.5-pro', { waitUntil: 'networkidle2' });
 
     // Toggle device mode
