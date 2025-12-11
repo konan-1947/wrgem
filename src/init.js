@@ -41,7 +41,7 @@ async function init(options = {}) {
             // Có session  dùng headless
             await initFromFile.call(this, {
                 ...options,
-                headless: options.headless !== undefined ? options.headless : true
+                headless: options.headless !== undefined ? options.headless : 'new'
             });
 
             // Đóng browser sau khi init

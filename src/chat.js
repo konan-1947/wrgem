@@ -20,7 +20,7 @@ async function chat(message, options = {}) {
     try {
         // Chỉ mở browser nếu chưa có browser đang mở
         if (!this.browser || !this.page) {
-            await initFromFile.call(this, { headless: false });
+            await initFromFile.call(this, { headless: 'new' });
         }
 
         const textareaSelectors = [

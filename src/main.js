@@ -28,9 +28,9 @@ class WrgemClient {
     }
 
     /**
-     * Gửi message và nhận response (chat liên tục)
+     * Gửi message và nhận response
      */
-    async chat(message, options = {}) {
+    async request_aistudio(message, options = {}) {
         return await chat.call(this, message, options);
     }
 
