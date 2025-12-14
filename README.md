@@ -134,6 +134,8 @@ Gửi tin nhắn đến Gemini và nhận phản hồi.
 | `message` | String | ✓ | Nội dung tin nhắn gửi đến AI |
 | `options` | Object | ✗ | Đối tượng cấu hình |
 | `options.onStatus` | Function | ✗ | Callback nhận thông báo trạng thái |
+| `options.onUpdate` | Function | ✗ | Callback nhận response theo từng phần (streaming) |
+| `options.onComplete` | Function | ✗ | Callback được gọi khi response hoàn tất |
 
 #### Callback `onStatus`
 
@@ -144,6 +146,26 @@ Hàm callback nhận một tham số `status` (string) với các giá trị:
 - `'filling_message'` - Đang điền tin nhắn
 - `'sending_request'` - Đang gửi yêu cầu
 - `'waiting_response'` - Đang chờ phản hồi
+- `'streaming'` - Đang nhận response theo từng phần
+
+#### Callback `onUpdate`
+
+Hàm callback nhận response theo từng phần khi AI đang trả lời (streaming). Callback này sẽ được gọi nhiều lần trong quá trình AI sinh ra câu trả lời.
+
+**Tham số:**
+- `content` (String) - Nội dung response hiện tại (đã format dạng markdown)
+
+**Lưu ý:**
+- Callback này được gọi mỗi 500ms khi phát hiện có nội dung mới
+- Mỗi lần gọi sẽ trả về toàn bộ nội dung từ đầu đến thời điểm hiện tại
+- Phù hợp để hiển thị progress real-time trong UI
+
+#### Callback `onComplete`
+
+Hàm callback được gọi khi AI đã trả lời hoàn tất.
+
+**Tham số:**
+- `content` (String) - Nội dung response đầy đủ cuối cùng (đã format dạng markdown)
 
 #### Hành vi
 
@@ -221,18 +243,18 @@ async function chatWithStatus() {
   const response = await client.request_aistudio('Giải thích AI là gì?', {
     onStatus: (status) => {
       const statusMessages = {
-        'reconnecting': '🔄 Đang kết nối...',
-        'finding_input': '🔍 Đang tìm ô nhập...',
-        'filling_message': '✍️  Đang viết tin nhắn...',
-        'sending_request': '📤 Đang gửi...',
-        'waiting_response': '⏳ Đang chờ phản hồi...'
+        'reconnecting': 'Đang kết nối...',
+        'finding_input': 'Đang tìm ô nhập...',
+        'filling_message': 'Đang viết tin nhắn...',
+        'sending_request': 'Đang gửi...',
+        'waiting_response': 'Đang chờ phản hồi...'
       };
       console.log(statusMessages[status] || status);
     }
   });
   
-  console.log('\n📩 Phản hồi:', response.data);
-  console.log('📊 Độ dài:', response.metadata.responseLength, 'ký tự');
+  console.log('\nPhản hồi:', response.data);
+  console.log('Độ dài:', response.metadata.responseLength, 'ký tự');
   
   await client.close();
 }
@@ -240,7 +262,46 @@ async function chatWithStatus() {
 chatWithStatus();
 ```
 
-#### Ví dụ 3: Chat liên tục (giống chatbot)
+#### Ví dụ 3: Nhận response theo từng phần (Streaming)
+
+```javascript
+const WrgemClient = require('./index');
+
+async function chatWithStreaming() {
+  const client = new WrgemClient();
+  await client.init();
+  
+  console.log('Đang hỏi AI...\n');
+  
+  const response = await client.request_aistudio('Viết một bài thơ ngắn về mùa xuân', {
+    onStatus: (status) => {
+      if (status === 'streaming') {
+        console.log('AI đang trả lời...\n');
+      }
+    },
+    onUpdate: (content) => {
+      // Xóa màn hình và hiển thị nội dung mới
+      process.stdout.write('\x1Bc'); // Clear console
+      console.log('AI đang viết:\n');
+      console.log(content);
+    },
+    onComplete: (finalContent) => {
+      console.log('\n--- Hoàn tất ---');
+      console.log('Độ dài:', finalContent.length, 'ký tự');
+    }
+  });
+  
+  if (response.success) {
+    console.log('\nResponse cuối cùng:', response.data);
+  }
+  
+  await client.close();
+}
+
+chatWithStreaming();
+```
+
+#### Ví dụ 4: Chat liên tục (giống chatbot)
 
 ```javascript
 const WrgemClient = require('./index');
@@ -255,7 +316,7 @@ async function chatbot() {
   const client = new WrgemClient();
   await client.init();
   
-  console.log('🤖 Chatbot đã sẵn sàng! Gõ "exit" để thoát.\n');
+  console.log('Chatbot đã sẵn sàng! Gõ "exit" để thoát.\n');
   
   const askQuestion = () => {
     rl.question('Bạn: ', async (message) => {
@@ -283,7 +344,7 @@ async function chatbot() {
 chatbot();
 ```
 
-#### Ví dụ 4: Xử lý lỗi
+#### Ví dụ 5: Xử lý lỗi
 
 ```javascript
 const WrgemClient = require('./index');
@@ -378,283 +439,4 @@ async function safeExample() {
 safeExample();
 ```
 
----
 
-## Quản lý vòng đời Browser
-
-### Lifecycle Flow
-
-```
-┌─────────────┐
-│   init()    │  ← Browser mở, kiểm tra session, rồi ĐÓNG
-└─────────────┘
-       │
-       ▼
-┌──────────────────┐
-│ request_aistudio │  ← Browser mở lại và GIỮ MỞ
-└──────────────────┘
-       │
-       ▼
-┌──────────────────┐
-│ request_aistudio │  ← Dùng lại browser đang mở
-└──────────────────┘
-       │
-       ▼
-┌──────────────────┐
-│ request_aistudio │  ← Dùng lại browser đang mở
-└──────────────────┘
-       │
-       ▼
-┌─────────────┐
-│   close()   │  ← ĐÓNG browser
-└─────────────┘
-```
-
-### Auto Cleanup
-
-Thư viện tự động cleanup browser khi:
-- Nhận tín hiệu SIGINT (Ctrl+C)
-- Nhận tín hiệu SIGTERM
-- Process kết thúc (beforeExit)
-
-```javascript
-// Không cần lo lắng, browser sẽ tự động đóng khi bạn Ctrl+C
-const client = new WrgemClient();
-await client.init();
-await client.request_aistudio('Hello');
-// Ctrl+C → Browser tự động đóng
-```
-
----
-
-## Best Practices
-
-### 1. Tái sử dụng Client Instance
-
-```javascript
-// ✅ ĐÚNG - Tạo một instance và dùng nhiều lần
-const client = new WrgemClient();
-await client.init();
-await client.request_aistudio('Message 1');
-await client.request_aistudio('Message 2');
-await client.close();
-
-// ❌ SAI - Tạo nhiều instance không cần thiết
-for (let i = 0; i < 10; i++) {
-  const client = new WrgemClient(); // Lãng phí tài nguyên
-  await client.init();
-  await client.request_aistudio('Message');
-  await client.close();
-}
-```
-
-### 2. Luôn gọi close()
-
-```javascript
-// ✅ ĐÚNG - Sử dụng finally
-try {
-  const client = new WrgemClient();
-  await client.init();
-  await client.request_aistudio('Message');
-} finally {
-  await client.close();
-}
-
-// ❌ SAI - Không đóng browser
-const client = new WrgemClient();
-await client.init();
-await client.request_aistudio('Message');
-// Quên close() → Browser vẫn chạy ngầm
-```
-
-### 3. Xử lý lỗi đúng cách
-
-```javascript
-// ✅ ĐÚNG - Kiểm tra success
-const response = await client.request_aistudio('Message');
-if (response.success) {
-  console.log(response.data);
-} else {
-  console.error('Lỗi:', response.error);
-}
-
-// ❌ SAI - Không kiểm tra lỗi
-const response = await client.request_aistudio('Message');
-console.log(response.data); // Có thể undefined nếu lỗi
-```
-
-### 4. Sử dụng callback khi cần feedback
-
-```javascript
-// ✅ ĐÚNG - Hiển thị trạng thái cho người dùng
-await client.request_aistudio('Message', {
-  onStatus: (status) => console.log('⏳', status)
-});
-
-// ✅ CŨNG OK - Không cần callback nếu không cần feedback ngay
-await client.request_aistudio('Message');
-```
-
----
-
-## Các trường hợp sử dụng
-
-### Use Case 1: Batch Processing
-
-```javascript
-const WrgemClient = require('./index');
-
-async function batchProcess(questions) {
-  const client = new WrgemClient();
-  
-  try {
-    await client.init();
-    
-    const results = [];
-    for (const question of questions) {
-      console.log('Đang xử lý:', question);
-      const response = await client.request_aistudio(question);
-      results.push({
-        question,
-        answer: response.data,
-        success: response.success
-      });
-    }
-    
-    return results;
-  } finally {
-    await client.close();
-  }
-}
-
-// Sử dụng
-const questions = [
-  'AI là gì?',
-  'Machine Learning hoạt động như thế nào?',
-  'Phân biệt AI và ML'
-];
-
-batchProcess(questions).then(results => {
-  results.forEach(r => {
-    console.log('\nQ:', r.question);
-    console.log('A:', r.answer);
-  });
-});
-```
-
-### Use Case 2: Server Integration
-
-```javascript
-const express = require('express');
-const WrgemClient = require('./index');
-
-const app = express();
-app.use(express.json());
-
-// Tạo một client dùng chung
-let client = null;
-
-async function initClient() {
-  client = new WrgemClient();
-  await client.init();
-  console.log('AI Client đã sẵn sàng');
-}
-
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { message } = req.body;
-    const response = await client.request_aistudio(message);
-    
-    res.json({
-      success: response.success,
-      answer: response.data,
-      error: response.error
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Cleanup khi shutdown
-process.on('SIGTERM', async () => {
-  if (client) await client.close();
-  process.exit(0);
-});
-
-// Khởi động server
-initClient().then(() => {
-  app.listen(3000, () => {
-    console.log('Server đang chạy tại http://localhost:3000');
-  });
-});
-```
-
-### Use Case 3: Context-aware Chat
-
-```javascript
-const WrgemClient = require('./index');
-
-async function contextAwareChat() {
-  const client = new WrgemClient();
-  await client.init();
-  
-  // Context được AI Studio tự động quản lý trong UI
-  // Các tin nhắn tiếp theo sẽ nhớ context
-  
-  await client.request_aistudio('Tôi tên là Nam');
-  await client.request_aistudio('Tôi thích lập trình');
-  
-  // AI sẽ nhớ tên và sở thích từ các tin nhắn trước
-  const response = await client.request_aistudio('Tên tôi là gì?');
-  console.log(response.data); // "Tên bạn là Nam"
-  
-  await client.close();
-}
-
-contextAwareChat();
-```
-
----
-
-## Troubleshooting
-
-### Browser không mở khi init()
-
-**Nguyên nhân**: Đã có session từ lần chạy trước
-
-**Giải pháp**: 
-```bash
-# Xóa session để login lại
-rm -rf ~/.wrgem_data
-```
-
-### Timeout khi chờ response
-
-**Nguyên nhân**: Câu hỏi quá phức tạp hoặc mạng chậm
-
-**Giải pháp**: Timeout mặc định là 60s, có thể tăng bằng cách sửa timeout trong source code
-
-### Lỗi "Textarea not found"
-
-**Nguyên nhân**: Page AI Studio thay đổi cấu trúc hoặc chưa load xong
-
-**Giải pháp**: 
-- Kiểm tra lại URL AI Studio có đúng không
-- Đảm bảo đã đăng nhập thành công
-- Thử reconnect bằng cách gửi lại request
-
----
-
-## Giới hạn
-
-- Yêu cầu đăng nhập Google account
-- Phụ thuộc vào giao diện web của AI Studio
-- Timeout 60s cho mỗi response
-- Không hỗ trợ upload file/image
-- Chỉ hỗ trợ text chat
-
----
-
-## License
-
-MIT
