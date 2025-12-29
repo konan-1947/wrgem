@@ -34,6 +34,13 @@ export const useAIClient = () => {
             }
         };
         initClient();
+
+        return () => {
+            if (thinkingIntervalRef.current) {
+                clearInterval(thinkingIntervalRef.current);
+            }
+            client.close().catch(() => { });
+        };
     }, []);
 
     const handleSubmit = async (text) => {

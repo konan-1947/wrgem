@@ -5,7 +5,13 @@ import ChatApp from './components/ChatApp.js';
 
 const { createElement: h } = React;
 
-process.on('SIGINT', () => process.exit(0));
+let isExiting = false;
+process.on('SIGINT', () => {
+    if (!isExiting) {
+        isExiting = true;
+        setTimeout(() => process.exit(0), 500);
+    }
+});
 
 console.clear();
 

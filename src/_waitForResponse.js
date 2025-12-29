@@ -7,89 +7,88 @@
 const htmlToMarkdown = require('./htmlToMarkdown');
 
 async function _waitForResponse(message, options = {}) {
-    return new Promise(async (resolve) => {
+    return new Promise(async (resolve, reject) => {
         let previousText = '';
         let noChangeCount = 0;
         const maxNoChange = 10;
+        let checkInterval = null;
 
-        const checkInterval = setInterval(async () => {
-            try {
-                // Extract response HTML từ ms-cmark-node
-                const responseData = await this.page.evaluate(() => {
-                    // Tìm tất cả chat turn containers
-                    const containers = document.querySelectorAll('.chat-turn-container');
+        const cleanup = () => {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+            }
+        };
 
-                    if (containers.length > 0) {
-                        // Lấy container cuối cùng (response mới nhất)
-                        const lastContainer = containers[containers.length - 1];
+        try {
+            checkInterval = setInterval(async () => {
+                try {
+                    const responseData = await this.page.evaluate(() => {
+                        const containers = document.querySelectorAll('.chat-turn-container');
 
-                        // Lấy turn content
-                        const turnContent = lastContainer.querySelector('.turn-content');
+                        if (containers.length > 0) {
+                            const lastContainer = containers[containers.length - 1];
+                            const turnContent = lastContainer.querySelector('.turn-content');
 
-                        if (turnContent) {
-                            // Tìm ms-cmark-node (component chứa markdown đã render)
-                            const cmarkNode = turnContent.querySelector('ms-cmark-node');
+                            if (turnContent) {
+                                const cmarkNode = turnContent.querySelector('ms-cmark-node');
 
-                            if (cmarkNode) {
-                                // Lấy HTML để convert sang markdown
-                                const html = cmarkNode.innerHTML;
-                                const textPreview = cmarkNode.textContent?.trim() || '';
+                                if (cmarkNode) {
+                                    const html = cmarkNode.innerHTML;
+                                    const textPreview = cmarkNode.textContent?.trim() || '';
+                                    const footer = lastContainer.querySelector('.turn-footer');
+                                    const hasLikeButton = footer ? !!footer.querySelector('button[iconname="thumb_up"]') : false;
 
-                                // Check footer có like button không (response complete)
-                                const footer = lastContainer.querySelector('.turn-footer');
-                                const hasLikeButton = footer ? !!footer.querySelector('button[iconname="thumb_up"]') : false;
-
-                                return { html, textPreview, hasFooter: hasLikeButton };
+                                    return { html, textPreview, hasFooter: hasLikeButton };
+                                }
                             }
                         }
-                    }
 
-                    return { html: '', textPreview: '', hasFooter: false };
-                });
+                        return { html: '', textPreview: '', hasFooter: false };
+                    });
 
-                const currentHtml = responseData.html;
-                const textPreview = responseData.textPreview;
-                const hasFooter = responseData.hasFooter;
+                    const currentHtml = responseData.html;
+                    const textPreview = responseData.textPreview;
+                    const hasFooter = responseData.hasFooter;
 
-                // Check thay đổi (bỏ điều kiện length > 10 để hỗ trợ response ngắn)
-                if (currentHtml && currentHtml !== previousText && textPreview.length > 0) {
-                    // Lần đầu có content -> chuyển sang streaming
-                    if (previousText === '' && options.onStatus) {
-                        options.onStatus('streaming');
-                    }
-
-                    previousText = currentHtml;
-                    noChangeCount = 0;
-
-                    // Convert HTML sang markdown cho progress update
-                    const markdown = htmlToMarkdown(currentHtml);
-
-                    if (options.onUpdate && typeof options.onUpdate === 'function') {
-                        options.onUpdate(markdown);
-                    } else {
-                        process.stdout.write(`\r← ${textPreview.substring(0, 100)}...`);
-                    }
-                } else if (currentHtml && currentHtml === previousText) {
-                    noChangeCount++;
-
-                    // Nếu có footer (like button) => response complete ngay
-                    if (hasFooter || noChangeCount >= maxNoChange) {
-                        clearInterval(checkInterval);
-
-                        // Convert HTML sang markdown cho kết quả cuối
-                        const finalMarkdown = htmlToMarkdown(currentHtml);
-
-                        if (options.onComplete && typeof options.onComplete === 'function') {
-                            options.onComplete(finalMarkdown);
+                    if (currentHtml && currentHtml !== previousText && textPreview.length > 0) {
+                        if (previousText === '' && options.onStatus) {
+                            options.onStatus('streaming');
                         }
 
-                        resolve(finalMarkdown);
+                        previousText = currentHtml;
+                        noChangeCount = 0;
+
+                        const markdown = htmlToMarkdown(currentHtml);
+
+                        if (options.onUpdate && typeof options.onUpdate === 'function') {
+                            options.onUpdate(markdown);
+                        } else {
+                            process.stdout.write(`\r← ${textPreview.substring(0, 100)}...`);
+                        }
+                    } else if (currentHtml && currentHtml === previousText) {
+                        noChangeCount++;
+
+                        if (hasFooter || noChangeCount >= maxNoChange) {
+                            cleanup();
+
+                            const finalMarkdown = htmlToMarkdown(currentHtml);
+
+                            if (options.onComplete && typeof options.onComplete === 'function') {
+                                options.onComplete(finalMarkdown);
+                            }
+
+                            resolve(finalMarkdown);
+                        }
                     }
+                } catch (error) {
+                    // Ignore errors during polling
                 }
-            } catch (error) {
-                // Ignore errors during polling
-            }
-        }, 500);
+            }, 500);
+        } catch (error) {
+            cleanup();
+            reject(error);
+        }
     });
 }
 

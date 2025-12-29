@@ -44,14 +44,18 @@ async function init_aistudio(options = {}) {
 
     console.log('=> Toggle device mode để trigger UI...');
     const client = await this.page.target().createCDPSession();
-    await client.send('Emulation.setDeviceMetricsOverride', {
-        width: 375,
-        height: 667,
-        deviceScaleFactor: 2,
-        mobile: true
-    });
-    await this.page.waitForTimeout(500);
-    await client.send('Emulation.clearDeviceMetricsOverride');
+    try {
+        await client.send('Emulation.setDeviceMetricsOverride', {
+            width: 375,
+            height: 667,
+            deviceScaleFactor: 2,
+            mobile: true
+        });
+        await this.page.waitForTimeout(500);
+        await client.send('Emulation.clearDeviceMetricsOverride');
+    } finally {
+        await client.detach();
+    }
 
     console.log('=> Đợi UI load...');
     try {
