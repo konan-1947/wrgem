@@ -1,3 +1,5 @@
+2/5: ý tưởng: thay vì đăng nhập thông thường, popup vào trình duyệt trực tiếp và lấy auth
+
 # Rev AI Studio
 
 Thư viện Node.js tương tác với Google Gemini thông qua AI Studio interface bằng browser automation.
